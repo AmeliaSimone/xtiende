@@ -41,23 +41,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshAccessToken = async () => {
     try {
+      console.log("🔄 Intentando refrescar el accessToken...");
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
-        credentials: "include", // 🔥 Enviar cookies en la petición
+        credentials: "include", 
       });
   
       if (!res.ok) throw new Error("No se pudo refrescar el token");
   
       const data = await res.json();
-      setAccessToken(data.accessToken);
+      console.log("✅ Nuevo accessToken recibido:", data.accessToken);
   
-      console.log("🔄 Nuevo accessToken recibido:", data.accessToken);
+      setAccessToken(data.accessToken);
+      sessionStorage.setItem("accessToken", data.accessToken); 
     } catch {
       console.log("❌ No se pudo refrescar el token. Cerrando sesión...");
       setAccessToken(null);
       setUser(null);
     }
   };
+  
   
   useEffect(() => {
     if (!accessToken) {

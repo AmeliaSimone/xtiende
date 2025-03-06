@@ -3,21 +3,23 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { TextField, Button, Box, Typography, Container, Alert } from "@mui/material";
+import { TextField, Button, Box, Typography, Container, Alert, Link } from "@mui/material";
+import TwoFAModal from "@/components/TwoFAModal";
 
 export default function LoginPage() {
-  const auth = useAuth(); // Verificar si `useAuth()` es válido
+  const auth = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false); // ⚠️ Previene error de hidratación
+  const [isMounted, setIsMounted] = useState(false);
+  const [isTwoFAModalOpen, setIsTwoFAModalOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return null; // 🔥 Evita la renderización en SSR hasta que el cliente esté listo
+  if (!isMounted) return null;
   if (!auth) return <Typography variant="h6">Error: `AuthContext` no está disponible.</Typography>;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,8 +36,15 @@ export default function LoginPage() {
     }
 
     try {
-      await auth.login(email, password); // ✅ Asegurar que `login` existe
-      router.push("/dashboard");
+      await auth.login(email, password);
+
+      // Verifica si el dispositivo ya está confiable
+      const isTrustedDevice = localStorage.getItem("trustedDevice");
+      if (!isTrustedDevice) {
+        setIsTwoFAModalOpen(true);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Credenciales incorrectas.");
     }
@@ -70,7 +79,21 @@ export default function LoginPage() {
             Iniciar Sesión
           </Button>
         </Box>
+
+        {/* 🔹 Enlace "¿Olvidaste tu contraseña?" */}
+        <Box sx={{ mt: 2 }}>
+          <Link href="/password-reset/request" underline="hover" color="primary">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </Box>
       </Box>
+
+      {/* Modal de 2FA */}
+      <TwoFAModal 
+        isOpen={isTwoFAModalOpen} 
+        onClose={() => setIsTwoFAModalOpen(false)} 
+        onSuccess={() => router.push("/dashboard")}
+      />
     </Container>
   );
 }
